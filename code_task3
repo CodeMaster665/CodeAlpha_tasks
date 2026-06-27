@@ -1,0 +1,93 @@
+include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <stdexcept>
+#include <ctime>
+using namespace std;
+
+struct Poll {
+     string title;
+     vector<string> options;
+     vector<int> voteCounts;
+     time_t endTime;
+     string creator; 
+};
+
+class PollingSystem {
+  private:
+    int pollCount = 0;
+    unordered_map<int, Poll> polls;
+    unordered_map<int, unordered_map<string, bool>> hasVoted;
+ public:
+    int createPoll(const string& title,
+    const vector<string>& options,
+    int durationSeconds,
+    const string& creator) {
+    if (options.size() < 2)
+    throw invalid_argument("Need at least 2 options");
+    if (durationSeconds <= 0)
+    throw invalid_argument("Duration must be positive");
+    int pollId = ++pollCount;
+    Poll p;
+    p.title = title;
+    p.options = options;
+    p.voteCounts = vector<int>(options.size(), 0);
+    p.endTime = time(nullptr) + durationSeconds;
+    p.creator = creator;
+    polls[pollId] = p;
+    cout << "[Event] PollCreated: id=" << pollId << " title=\"" << title << "\"\n";
+    return pollId;
+}
+void vote(int pollId, int optionIndex, const string& voter) {
+    if (polls.find(pollId) == polls.end())
+      throw runtime_error("Poll does not exist");
+      Poll& p = polls[pollId];
+      if (time(nullptr) >= p.endTime)
+        throw runtime_error("Poll has ended");
+if (hasVoted[pollId][voter])
+throw runtime_error("Already voted");
+if (optionIndex < 0 || optionIndex >= (int)p.options.size())
+throw out_of_range("Invalid option index");
+hasVoted[pollId][voter] = true;
+p.voteCounts[optionIndex]++;
+cout << "[Event] Voted: pollId=" << pollId << " voter=" << voter << " option=" << optionIndex << "\n";
+}
+pair<string, int> getWinner(int pollId) {
+if (polls.find(pollId) == polls.end())
+throw runtime_error("Poll does not exist");
+if (time(nullptr) < polls[pollId].endTime)
+throw runtime_error("Poll is still active");
+Poll& p = polls[pollId];
+int winnerIndex = 0;
+for (int i = 1; i < (int)p.voteCounts.size(); i++)
+if (p.voteCounts[i] > p.voteCounts[winnerIndex])
+winnerIndex = i;
+return {p.options[winnerIndex], p.voteCounts[winnerIndex]};
+}
+void getPollInfo(int pollId) {
+if (polls.find(pollId) == polls.end())
+throw runtime_error("Poll does not exist");
+Poll& p = polls[pollId];
+cout << "Title: " << p.title << "\n";
+for (int i = 0; i < (int)p.options.size(); i++)
+cout << " [" << i << "] " << p.options[i] << " — votes: " << p.voteCounts[i] << "\n";
+}
+bool hasUserVoted(int pollId, const string& voter) {
+return hasVoted[pollId][voter];
+}
+};
+
+int main() {
+PollingSystem ps;
+int id = ps.createPoll("Favorite color?",
+{"Red", "Blue", "Green"},
+3600, "alice");
+ps.vote(id, 1, "alice");
+ps.vote(id, 1, "bob");
+ps.vote(id, 2, "carol");
+ps.getPollInfo(id);
+  
+cout << "Has alice voted? " << boolalpha << ps.hasUserVoted(id, "alice") << "\n";
+return 0;
+}
