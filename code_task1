@@ -1,0 +1,22 @@
+#include <stdio.h>
+static int value = 0;
+void increment() {
+    value++;
+}
+void decrement() {
+     value--;
+}
+
+int getValue() {
+      return value;
+}
+int main() {
+       printf("Initial value: %d\n", getValue());
+       increment();
+       increment();
+       increment();
+       printf("After 3 increments: %d\n", getValue());
+       decrement();
+       printf("After 1 decrement: %d\n", getValue());
+     return 0;
+}
